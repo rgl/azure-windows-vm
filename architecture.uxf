@@ -1,27 +1,27 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<diagram program="umlet" version="14.3.0">
+<diagram program="umlet" version="15.1">
   <zoom_level>10</zoom_level>
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>770</x>
+      <x>710</x>
       <y>320</y>
-      <w>230</w>
+      <w>290</w>
       <h>70</h>
     </coordinates>
-    <panel_attributes>&lt;&lt;azurerm_virtual_machine&gt;&gt;
+    <panel_attributes>&lt;&lt;azurerm_windows_virtual_machine&gt;&gt;
 name=app
-image=windows 2019
+image=windows 2022
 </panel_attributes>
     <additional_attributes/>
   </element>
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>460</x>
+      <x>400</x>
       <y>150</y>
-      <w>580</w>
-      <h>430</h>
+      <w>640</w>
+      <h>360</h>
     </coordinates>
     <panel_attributes>&lt;&lt;azurerm_virtual_network&gt;&gt;
 name=example
@@ -33,10 +33,10 @@ layer=-1</panel_attributes>
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>480</x>
+      <x>420</x>
       <y>230</y>
-      <w>540</w>
-      <h>330</h>
+      <w>600</w>
+      <h>260</h>
     </coordinates>
     <panel_attributes>&lt;&lt;azurerm_subnet&gt;&gt;
 name=backend
@@ -47,10 +47,10 @@ lt=..</panel_attributes>
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>260</x>
+      <x>200</x>
       <y>80</y>
-      <w>800</w>
-      <h>520</h>
+      <w>860</w>
+      <h>450</h>
     </coordinates>
     <panel_attributes>&lt;&lt;azurerm_resource_group&gt;&gt;
 name=rgl-windows-vm-example
@@ -62,7 +62,7 @@ layer=-1</panel_attributes>
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>280</x>
+      <x>220</x>
       <y>320</y>
       <w>160</w>
       <h>70</h>
@@ -75,7 +75,7 @@ name=app
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>430</x>
+      <x>370</x>
       <y>340</y>
       <w>90</w>
       <h>30</h>
@@ -86,7 +86,7 @@ name=app
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>500</x>
+      <x>440</x>
       <y>320</y>
       <w>250</w>
       <h>70</h>
@@ -99,7 +99,7 @@ private_ip_address=10.1.1.4</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>740</x>
+      <x>680</x>
       <y>340</y>
       <w>50</w>
       <h>30</h>
@@ -150,10 +150,10 @@ lt=()-</panel_attributes>
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>240</x>
+      <x>180</x>
       <y>30</y>
-      <w>1310</w>
-      <h>590</h>
+      <w>1370</w>
+      <h>520</h>
     </coordinates>
     <panel_attributes>&lt;&lt;azure cloud&gt;&gt;
 lt=..
@@ -164,14 +164,14 @@ layer=-1</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>170</x>
+      <x>100</x>
       <y>330</y>
-      <w>130</w>
+      <w>140</w>
       <h>40</h>
     </coordinates>
     <panel_attributes>lt=()-
 r1=:80</panel_attributes>
-    <additional_attributes>10.0;20.0;110.0;20.0</additional_attributes>
+    <additional_attributes>10.0;20.0;120.0;20.0</additional_attributes>
   </element>
   <element>
     <id>UMLClass</id>
@@ -225,7 +225,7 @@ F:</panel_attributes>
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>770</x>
+      <x>710</x>
       <y>410</y>
       <w>50</w>
       <h>60</h>
@@ -238,7 +238,7 @@ C:</panel_attributes>
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>860</x>
+      <x>790</x>
       <y>410</y>
       <w>50</w>
       <h>60</h>
@@ -251,7 +251,7 @@ D:</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>790</x>
+      <x>720</x>
       <y>380</y>
       <w>30</w>
       <h>50</h>
@@ -262,7 +262,7 @@ D:</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>870</x>
+      <x>800</x>
       <y>380</y>
       <w>30</w>
       <h>50</h>
@@ -284,21 +284,8 @@ D:</panel_attributes>
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>820</x>
-      <y>480</y>
-      <w>50</w>
-      <h>60</h>
-    </coordinates>
-    <panel_attributes>&lt;&lt;disk&gt;&gt;
-floppy
-A:</panel_attributes>
-    <additional_attributes/>
-  </element>
-  <element>
-    <id>UMLClass</id>
-    <coordinates>
-      <x>910</x>
-      <y>480</y>
+      <x>870</x>
+      <y>410</y>
       <w>50</w>
       <h>60</h>
     </coordinates>
@@ -310,23 +297,12 @@ E:</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>920</x>
+      <x>880</x>
       <y>380</y>
       <w>30</w>
-      <h>120</h>
+      <h>50</h>
     </coordinates>
     <panel_attributes>lt=-</panel_attributes>
-    <additional_attributes>10.0;100.0;10.0;10.0</additional_attributes>
-  </element>
-  <element>
-    <id>Relation</id>
-    <coordinates>
-      <x>830</x>
-      <y>380</y>
-      <w>30</w>
-      <h>120</h>
-    </coordinates>
-    <panel_attributes>lt=-</panel_attributes>
-    <additional_attributes>10.0;100.0;10.0;10.0</additional_attributes>
+    <additional_attributes>10.0;30.0;10.0;10.0</additional_attributes>
   </element>
 </diagram>

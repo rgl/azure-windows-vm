@@ -1,7 +1,35 @@
+# see https://github.com/hashicorp/terraform
+terraform {
+  required_version = "1.9.6"
+  required_providers {
+    # see https://registry.terraform.io/providers/hashicorp/random
+    random = {
+      source  = "hashicorp/random"
+      version = "3.6.3"
+    }
+    # see https://registry.terraform.io/providers/hashicorp/cloudinit
+    # see https://github.com/hashicorp/terraform-provider-cloudinit
+    cloudinit = {
+      source  = "hashicorp/cloudinit"
+      version = "2.3.5"
+    }
+    # see https://github.com/terraform-providers/terraform-provider-azurerm
+    # see https://registry.terraform.io/providers/hashicorp/azurerm
+    azurerm = {
+      source  = "hashicorp/azurerm"
+      version = "4.3.0"
+    }
+  }
+}
+
+provider "azurerm" {
+  features {}
+}
+
 # NB you can test the relative speed from you browser to a location using https://azurespeedtest.azurewebsites.net/
 # get the available locations with: az account list-locations --output table
 variable "location" {
-  default = "France Central" # see https://azure.microsoft.com/en-us/global-infrastructure/france/
+  default = "northeurope"
 }
 
 # NB this name must be unique within the Azure subscription.
@@ -10,29 +38,29 @@ variable "resource_group_name" {
   default = "rgl-windows-vm-example"
 }
 
+# NB this user cannot be "admin" nor "test" nor whatever Azure decided to deny.
 variable "admin_username" {
   default = "rgl"
 }
 
 variable "admin_password" {
-  default = "HeyH0Password"
+  default   = "HeyH0Password"
+  sensitive = true
 }
 
 output "app_ip_address" {
-  value = "${azurerm_public_ip.app.ip_address}"
+  value = azurerm_public_ip.app.ip_address
 }
 
-provider "azurerm" {}
-
 resource "azurerm_resource_group" "example" {
-  name     = "${var.resource_group_name}" # NB this name must be unique within the Azure subscription.
-  location = "${var.location}"
+  name     = var.resource_group_name # NB this name must be unique within the Azure subscription.
+  location = var.location
 }
 
 # NB this generates a single random number for the resource group.
 resource "random_id" "example" {
   keepers = {
-    resource_group = "${azurerm_resource_group.example.name}"
+    resource_group = azurerm_resource_group.example.name
   }
 
   byte_length = 10
@@ -43,8 +71,8 @@ resource "azurerm_storage_account" "diagnostics" {
   # NB this name must be at most 24 characters long.
   name = "diag${random_id.example.hex}"
 
-  resource_group_name      = "${azurerm_resource_group.example.name}"
-  location                 = "${azurerm_resource_group.example.location}"
+  resource_group_name      = azurerm_resource_group.example.name
+  location                 = azurerm_resource_group.example.location
   account_kind             = "StorageV2"
   account_tier             = "Standard"
   account_replication_type = "LRS"
@@ -53,29 +81,28 @@ resource "azurerm_storage_account" "diagnostics" {
 resource "azurerm_virtual_network" "example" {
   name                = "example"
   address_space       = ["10.1.0.0/16"]
-  location            = "${azurerm_resource_group.example.location}"
-  resource_group_name = "${azurerm_resource_group.example.name}"
+  location            = azurerm_resource_group.example.location
+  resource_group_name = azurerm_resource_group.example.name
 }
 
 resource "azurerm_subnet" "backend" {
   name                 = "backend"
-  resource_group_name  = "${azurerm_resource_group.example.name}"
-  virtual_network_name = "${azurerm_virtual_network.example.name}"
-  address_prefix       = "10.1.1.0/24"
+  resource_group_name  = azurerm_resource_group.example.name
+  virtual_network_name = azurerm_virtual_network.example.name
+  address_prefixes     = ["10.1.1.0/24"]
 }
 
 resource "azurerm_public_ip" "app" {
-  name                         = "app"
-  resource_group_name          = "${azurerm_resource_group.example.name}"
-  location                     = "${azurerm_resource_group.example.location}"
-  public_ip_address_allocation = "Static"
-  sku                          = "Basic"
+  name                = "app"
+  resource_group_name = azurerm_resource_group.example.name
+  location            = azurerm_resource_group.example.location
+  allocation_method   = "Static"
 }
 
 resource "azurerm_network_security_group" "app" {
   name                = "app"
-  resource_group_name = "${azurerm_resource_group.example.name}"
-  location            = "${azurerm_resource_group.example.location}"
+  resource_group_name = azurerm_resource_group.example.name
+  location            = azurerm_resource_group.example.location
 
   # NB By default, a security group, will have the following Inbound rules:
   #     | Priority | Name                           | Port  | Protocol  | Source            | Destination     | Action  |
@@ -101,6 +128,7 @@ resource "azurerm_network_security_group" "app" {
     source_address_prefix      = "*"
     destination_address_prefix = "*"
   }
+
   security_rule {
     name                       = "rdp"
     priority                   = 1001
@@ -115,105 +143,104 @@ resource "azurerm_network_security_group" "app" {
 }
 
 resource "azurerm_network_interface" "app" {
-  name                      = "app"
-  resource_group_name       = "${azurerm_resource_group.example.name}"
-  location                  = "${azurerm_resource_group.example.location}"
-  network_security_group_id = "${azurerm_network_security_group.app.id}"
+  name                = "app"
+  resource_group_name = azurerm_resource_group.example.name
+  location            = azurerm_resource_group.example.location
 
   ip_configuration {
     name                          = "app"
     primary                       = true
-    public_ip_address_id          = "${azurerm_public_ip.app.id}"
-    subnet_id                     = "${azurerm_subnet.backend.id}"
+    public_ip_address_id          = azurerm_public_ip.app.id
+    subnet_id                     = azurerm_subnet.backend.id
     private_ip_address_allocation = "Static"
-    private_ip_address            = "10.1.1.4"                     # NB Azure reserves the first four addresses in each subnet address range, so do not use those.
+    private_ip_address            = "10.1.1.4" # NB Azure reserves the first four addresses in each subnet address range, so do not use those.
   }
+}
+
+resource "azurerm_network_interface_security_group_association" "app" {
+  network_interface_id      = azurerm_network_interface.app.id
+  network_security_group_id = azurerm_network_security_group.app.id
 }
 
 resource "azurerm_virtual_machine_extension" "app" {
   name                 = "app"
-  location             = "${azurerm_resource_group.example.location}"
-  resource_group_name  = "${azurerm_resource_group.example.name}"
-  virtual_machine_name = "${azurerm_virtual_machine.app.name}"
+  virtual_machine_id   = azurerm_windows_virtual_machine.app.id
   publisher            = "Microsoft.Compute"
   type                 = "CustomScriptExtension"
-  type_handler_version = "1.9"
+  type_handler_version = "1.10"
 
-  settings = <<SETTINGS
-    {
-      "commandToExecute": "PowerShell -ExecutionPolicy Bypass -NonInteractive -Command \"gc -Raw C:\\AzureData\\CustomData.bin | iex\""
-    }
-SETTINGS
+  settings = jsonencode({
+    commandToExecute = <<-EOF
+    PowerShell -ExecutionPolicy Bypass -NonInteractive -Command "gc -Raw C:\AzureData\CustomData.bin | iex"
+    EOF
+  })
 }
 
-resource "azurerm_virtual_machine" "app" {
+# NB when first created, the windows VM uses 100% cpu for about 10m.
+resource "azurerm_windows_virtual_machine" "app" {
   name                  = "app"
-  resource_group_name   = "${azurerm_resource_group.example.name}"
-  location              = "${azurerm_resource_group.example.location}"
-  network_interface_ids = ["${azurerm_network_interface.app.id}"]
-  vm_size               = "Standard_DS1_v2"
+  resource_group_name   = azurerm_resource_group.example.name
+  location              = azurerm_resource_group.example.location
+  network_interface_ids = [azurerm_network_interface.app.id]
+  size                  = "Standard_DS1_v2" # 1 vCPU. 3.5 GB RAM.
 
-  delete_os_disk_on_termination    = true
-  delete_data_disks_on_termination = true
+  admin_username = var.admin_username # NB the built-in Administrator account will be renamed to this one.
+  admin_password = var.admin_password
 
-  storage_os_disk {
-    name          = "app_os"
-    caching       = "ReadWrite" # TODO is this advisable?
-    create_option = "FromImage"
+  custom_data = base64encode(file("provision.ps1"))
+
+  os_disk {
+    name    = "app-os"
+    caching = "ReadWrite" # TODO is this advisable?
 
     # resize the storage_image_reference disk size to this value.
     # NB this is optional.
     # NB MUST be higher than the used storage_image_reference disk size.
     # NB Azure maps the provisioned size (rounded up) to the nearest disk size offer.
     #    at the time of writing, the minimum disk size is 128GB (the E10 offer).
-    #    see https://docs.microsoft.com/en-us/azure/virtual-machines/windows/disks-standard-ssd
+    #    see https://learn.microsoft.com/en-us/azure/virtual-machines/disks-types#standard-ssds
     # NB You MUST resize the file system yourself (as-in provision.ps1).
     #disk_size_gb = "40"
 
-    managed_disk_type = "StandardSSD_LRS" # Locally Redundant Storage.
+    storage_account_type = "StandardSSD_LRS" # Locally Redundant Storage.
   }
 
-  # see https://docs.microsoft.com/en-us/azure/virtual-machines/windows/cli-ps-findimage
+  # see https://learn.microsoft.com/en-us/azure/virtual-machines/windows/cli-ps-findimage
   # e.g. az vm image list --all --publisher MicrosoftWindowsServer --offer WindowsServer --output table
-  storage_image_reference {
+  source_image_reference {
     publisher = "MicrosoftWindowsServer"
     offer     = "WindowsServer"
-    sku       = "2019-Datacenter-smalldisk" # NB two disk sizes versions are available: 2019-Datacenter (127GB) and 2019-Datacenter-smalldisk (30GB).
+    sku       = "2022-datacenter-smalldisk-g2" # NB two disk sizes versions are available: 2022-datacenter-g2 (127GB) and 2022-datacenter-smalldisk-g2 (30GB).
     version   = "latest"
   }
 
-  # add data disk.
-  # NB normally, the first data disk will be assigned the F drive letter (C is the os, D is the ephemeral disk, and E is the cd-rom).
-  # NB this disk will not be initialized by azure.
-  #    it will be initialized by our script (see os_profile.custom_data).
-  # NB Azure maps the provisioned size (rounded up) to the nearest disk size offer.
-  #    at the time of writing, the minimum disk size is 128GB (the E10 offer).
-  #    see https://docs.microsoft.com/en-us/azure/virtual-machines/windows/disks-standard-ssd
-  # NB You MUST initialize the disk and file system yourself (as-in provision.ps1).
-  storage_data_disk {
-    name              = "app_data1"
-    caching           = "ReadWrite"       # TODO is this advisable?
-    create_option     = "Empty"
-    disk_size_gb      = "10"
-    lun               = 0
-    managed_disk_type = "StandardSSD_LRS"
-  }
-
-  os_profile {
-    computer_name  = "app"
-    admin_username = "${var.admin_username}"                  # NB the built-in Administrator account will be renamed to this one.
-    admin_password = "${var.admin_password}"
-    custom_data    = "${base64encode(file("provision.ps1"))}"
-  }
-
-  os_profile_windows_config {
-    provision_vm_agent        = true
-    enable_automatic_upgrades = false
-    timezone                  = "GMT Standard Time"
-  }
-
   boot_diagnostics {
-    enabled     = true
-    storage_uri = "${azurerm_storage_account.diagnostics.primary_blob_endpoint}"
+    storage_account_uri = azurerm_storage_account.diagnostics.primary_blob_endpoint
   }
+}
+
+# data disk.
+# NB normally, the first data disk will be assigned the F drive letter (C is the os, D is the ephemeral disk, and E is the cd-rom).
+# NB this disk will not be initialized by azure.
+#    it will be initialized by our script (see azurerm_windows_virtual_machine custom_data).
+# NB Azure maps the provisioned size (rounded up) to the nearest disk size offer.
+#    at the time of writing, the minimum disk size is 128GB (the E10 offer).
+#    see https://learn.microsoft.com/en-us/azure/virtual-machines/disks-types#standard-ssds
+# NB You MUST initialize the disk and file system yourself (as-in provision.ps1).
+resource "azurerm_managed_disk" "app_data" {
+  # NB you MUST not use "app_data" name (and maybe other IIS/ASP.NET reserved names).
+  #    see https://github.com/terraform-providers/terraform-provider-azurerm/issues/8129
+  name                 = "app-data"
+  resource_group_name  = azurerm_resource_group.example.name
+  location             = azurerm_resource_group.example.location
+  create_option        = "Empty"
+  disk_size_gb         = 10
+  storage_account_type = "StandardSSD_LRS"
+}
+
+resource "azurerm_virtual_machine_data_disk_attachment" "app_data" {
+  virtual_machine_id = azurerm_windows_virtual_machine.app.id
+  managed_disk_id    = azurerm_managed_disk.app_data.id
+  lun                = 0
+  caching            = "ReadWrite" # TODO is this advisable?
 }

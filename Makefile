@@ -25,10 +25,10 @@ terraform-destroy-app:
 	TF_LOG=DEBUG \
 	TF_LOG_PATH=terraform.log \
 	TF_VAR_admin_ssh_key_data="$(shell cat ~/.ssh/id_rsa.pub)" \
-	time terraform destroy -target azurerm_virtual_machine.app
+	time terraform destroy -target azurerm_windows_virtual_machine.app
 
 architecture.png: architecture.uxf
-	java -jar ~/Applications/Umlet/umlet.jar \
+	umlet \
 		-action=convert \
 		-format=png \
 		-filename=$< \

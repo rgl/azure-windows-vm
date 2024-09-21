@@ -1,6 +1,6 @@
 # NB this script is run as the SYSTEM user.
 # NB this script must execute is less than 90 minutes.
-# see https://docs.microsoft.com/en-us/azure/virtual-machines/extensions/custom-script-windows
+# see https://learn.microsoft.com/en-us/azure/virtual-machines/extensions/custom-script-windows
 Start-Transcript -Path c:\AzureData\provision-log.txt
 Set-StrictMode -Version Latest
 $FormatEnumerationLimit = -1
@@ -79,6 +79,27 @@ if ($partition.Size -ne $partitionSupportedSize.SizeMax) {
     Resize-Partition -DriveLetter C -Size $partitionSupportedSize.SizeMax
 }
 
+# wait for the data disk to be attached.
+Write-Host "Waiting for the data disk to be attached..."
+$timeoutSeconds = 10*60
+$timer = [Diagnostics.Stopwatch]::StartNew()
+while ($true) {
+    if ($timer.Elapsed.TotalSeconds -ge $timeoutSeconds) {
+        throw "timeout waiting for the data disk to be attached."
+    }
+    $dataVolumes = Get-Disk | Get-Partition | Get-Volume | Where-Object { $_.FileSystemLabel -eq 'data' }
+    if ($dataVolumes) {
+        Write-Host "formatted data disk attached"
+        break
+    }
+    $rawDisks = Get-Disk | Where-Object { $_.PartitionStyle -eq 'raw' }
+    if ($rawDisks) {
+        Write-Host "unformatted data disk attached"
+        break
+    }
+    Start-Sleep -Seconds 10
+}
+
 # format all uninitialized disks (the data disks).
 Get-Disk `
     | Where-Object { $_.PartitionStyle -eq 'raw' } `
@@ -92,11 +113,13 @@ Get-Disk `
     }
 
 # install chocolatey.
+Write-Host "Installing chocolatey..."
 Invoke-WebRequest https://chocolatey.org/install.ps1 -UseBasicParsing | Invoke-Expression
 Import-Module C:\ProgramData\chocolatey\helpers\chocolateyInstaller.psm1
 Update-SessionEnvironment
 
 # install dependencies.
+Write-Host "Installing the app dependencies..."
 choco install -y nssm
 choco install -y nodejs-lts
 Update-SessionEnvironment
@@ -104,6 +127,7 @@ node --version
 npm --version
 
 # create an example http server and run it as a windows service.
+Write-Host "Installing the app..."
 $serviceName = 'app'
 $serviceUsername = "NT SERVICE\$serviceName"
 $serviceHome = 'c:\app'
@@ -133,7 +157,7 @@ function main(metadata, port) {
     server.listen(port);
 }
 
-// see https://docs.microsoft.com/en-us/azure/virtual-machines/linux/instance-metadata-service#retrieving-all-metadata-for-an-instance
+// see https://learn.microsoft.com/en-us/azure/virtual-machines/instance-metadata-service?tabs=windows#instance-metadata
 http.get(
     "http://169.254.169.254/metadata/instance?api-version=2017-08-01",
     {
@@ -223,5 +247,6 @@ New-NetFirewallRule `
     | Out-Null
 
 # try it.
+Write-Host "Trying the app..."
 Start-Sleep -Milliseconds 500
 Invoke-RestMethod http://localhost/try
