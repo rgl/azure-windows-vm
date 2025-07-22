@@ -58,7 +58,7 @@ az vm get-instance-view \
 After VM initialization is done (the log is stored at `c:\AzureData\provision-log.txt`), test the `app` endpoint:
 
 ```bash
-wget -qO- "http://$(terraform output --raw app_ip_address)/test"
+while ! wget -qO- "http://$(terraform output --raw app_ip_address)/test"; do sleep 3; done
 ```
 
 You can also list all resources:
