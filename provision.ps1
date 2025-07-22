@@ -146,7 +146,10 @@ Client Address: ${clientAddress}
 Request URL: ${request.url}
 `; 
         console.log(message);
-        response.writeHead(200, {"Content-Type": "text/plain"});
+        response.writeHead(200, {
+            "Content-Type": "text/plain",
+            "X-Client-Address": clientAddress,
+        });
         response.write(message);
         response.end();
     };

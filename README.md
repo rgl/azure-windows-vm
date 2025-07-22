@@ -10,7 +10,7 @@ Install the tools:
 ./provision-tools.sh
 ```
 
-Login into azure-cli:
+Login into azure:
 
 ```bash
 az login
@@ -59,6 +59,7 @@ After VM initialization is done (the log is stored at `c:\AzureData\provision-lo
 
 ```bash
 while ! wget -qO- "http://$(terraform output --raw app_ip_address)/test"; do sleep 3; done
+while ! wget -qO- "http://[$(terraform output --raw app_ipv6_ip_address)]/test"; do sleep 3; done
 ```
 
 You can also list all resources:
@@ -92,6 +93,40 @@ az vm run-command invoke \
     > output.json \
     && jq -r '.value[].message' output.json \
     && rm output.json
+```
+
+Access using RDP, either using Remmina or FreeRDP:
+
+```bash
+remmina --connect "rdp://rgl@$(terraform output --raw app_ip_address)"
+xfreerdp "/v:$(terraform output --raw app_ip_address)" /u:rgl /size:1440x900 +clipboard
+```
+
+Inside the RDP session, open a PowerShell session, and poke around:
+
+```powershell
+ipconfig /all
+route print
+ping -6 -n 3 2606:4700:4700::1111    # cloudflare dns.
+ping -6 -n 3 2606:4700:4700::1001    # cloudflare dns.
+ping -6 -n 3 ff02::1                 # all nodes.   # NB does not work in azure.
+ping -6 -n 3 ff02::2                 # all routers. # NB does not work in azure.
+ping -4 -n 3 ip6.me
+ping -6 -n 3 ip6.me
+Resolve-DnsName ip6.me
+Resolve-DnsName ip6.me -Server 2606:4700:4700::1111
+curl.exe -4 https://ip6.me/api/ # get the vm public ipv4 address.
+curl.exe -6 https://ip6.me/api/ # get the vm public ipv6 address.
+curl.exe http://ip6only.me/api/ # get the vm public ipv6 address.
+curl.exe http://10.1.1.4/test   # try the app private ipv4 endpoint.
+curl.exe http://[fd00::4]/test  # try the app private ipv6 endpoint.
+$ipv6_public_test_url="http://[$(((curl.exe -6 -s https://ip6.me/api/) -split ',')[1])]/test"
+curl.exe "$ipv6_public_test_url" # try the app public ipv6 endpoint.
+echo @"
+go to https://dnschecker.org/server-headers-check.php and test the app ipv6 url:
+$ipv6_public_test_url
+"@
+exit
 ```
 
 Destroy the example:
